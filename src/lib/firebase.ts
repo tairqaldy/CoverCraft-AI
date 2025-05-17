@@ -13,8 +13,41 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const auth = getAuth(app);
-const db = getFirestore(app);
+// Check if all required Firebase config keys are present
+const requiredKeys: (keyof typeof firebaseConfig)[] = ['apiKey', 'authDomain', 'projectId', 'appId'];
+const missingKeys = requiredKeys.filter(key => !firebaseConfig[key]);
+
+let app;
+let auth;
+let db;
+
+if (missingKeys.length > 0) {
+  console.error(`Firebase configuration is missing: ${missingKeys.join(', ')}. Please check your .env file.`);
+  // You might want to throw an error here or handle this case appropriately
+  // For now, we'll let it proceed, but Firebase services will likely fail.
+}
+
+
+if (!getApps().length) {
+  try {
+    app = initializeApp(firebaseConfig);
+  } catch (e) {
+    console.error("Failed to initialize Firebase app:", e);
+    console.error("Ensure your Firebase config in .env is correct and you have restarted the dev server.");
+  }
+} else {
+  app = getApp();
+}
+
+try {
+  auth = getAuth(app);
+  db = getFirestore(app);
+} catch (e) {
+  console.error("Failed to initialize Firebase services (Auth/Firestore):", e);
+   if (!app) {
+    console.error("Firebase app was not initialized. This is likely due to missing or incorrect .env configuration.");
+  }
+}
+
 
 export { app, auth, db };
