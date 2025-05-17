@@ -28,7 +28,7 @@ export function Header() {
     try {
       await signOut(auth);
       toast({ title: 'Logged Out', description: 'You have been successfully logged out.' });
-      router.push('/auth/auth');
+      router.push('/auth');
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Logout Failed', description: error.message });
     }
@@ -83,7 +83,7 @@ export function Header() {
             </DropdownMenu>
           ) : (
             <Button asChild variant="outline">
-              <Link href="/auth/auth">
+              <Link href="/auth">
                 <LogIn className="mr-2 h-4 w-4" />
                 Login / Sign Up
               </Link>
@@ -94,3 +94,4 @@ export function Header() {
     </header>
   );
 }
+

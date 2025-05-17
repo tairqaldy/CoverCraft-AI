@@ -75,7 +75,7 @@ export default function CoverCraftPage() {
   // Effect for redirecting and loading initial data
   useEffect(() => {
     if (!authLoading && !user) {
-      router.push("/auth/auth");
+      router.push("/auth");
     } else if (user && !hasLoadedFromFirestore.current) {
       setIsLoadingPersistence(true);
       getUserLetter(user.uid)
