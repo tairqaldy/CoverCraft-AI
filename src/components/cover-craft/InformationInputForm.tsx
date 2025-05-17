@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,6 +26,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Sparkles } from "lucide-react";
 import type { GenerateLetterDraftInput } from "@/ai/flows/generate-letter-draft";
+import { useEffect } from "react";
 
 const formSchema = z.object({
   background: z.string().min(50, {
@@ -43,16 +45,29 @@ export type InformationFormValues = z.infer<typeof formSchema>;
 interface InformationInputFormProps {
   onSubmit: (data: GenerateLetterDraftInput) => Promise<void>;
   isLoading: boolean;
+  initialValues?: GenerateLetterDraftInput; // For pre-filling from Firestore
 }
 
-export function InformationInputForm({ onSubmit, isLoading }: InformationInputFormProps) {
+export function InformationInputForm({ onSubmit, isLoading, initialValues }: InformationInputFormProps) {
   const form = useForm<InformationFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      background: "",
-      targetDetails: "",
+      background: initialValues?.background || "",
+      targetDetails: initialValues?.targetDetails || "",
+      letterType: initialValues?.letterType || undefined,
     },
   });
+
+  useEffect(() => {
+    if (initialValues) {
+      form.reset({
+        background: initialValues.background || "",
+        targetDetails: initialValues.targetDetails || "",
+        letterType: initialValues.letterType || undefined,
+      });
+    }
+  }, [initialValues, form]);
+
 
   const handleSubmit = (values: InformationFormValues) => {
     onSubmit(values);
@@ -63,7 +78,7 @@ export function InformationInputForm({ onSubmit, isLoading }: InformationInputFo
       <CardHeader>
         <CardTitle className="text-2xl">Create Your Letter</CardTitle>
         <CardDescription>
-          Provide your details and let our AI craft the perfect letter for you.
+          Provide your details and let our AI craft the perfect letter for you. Your progress is saved automatically.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -75,7 +90,7 @@ export function InformationInputForm({ onSubmit, isLoading }: InformationInputFo
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Letter Type</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a letter type" />
