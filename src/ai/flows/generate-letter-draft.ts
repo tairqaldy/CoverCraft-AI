@@ -1,3 +1,4 @@
+
 // src/ai/flows/generate-letter-draft.ts
 'use server';
 
@@ -38,7 +39,7 @@ const generateLetterDraftPrompt = ai.definePrompt({
   name: 'generateLetterDraftPrompt',
   input: {schema: GenerateLetterDraftInputSchema},
   output: {schema: GenerateLetterDraftOutputSchema},
-  prompt: `You are an expert in writing ${'{{letterType}}'}. Based on the user's background and the target job/university details, generate a personalized draft ${'{{letterType}}'}.\n\nUser Background: {{{background}}}\nTarget Details: {{{targetDetails}}}\n\nDraft ${'{{letterType}}'}:`, // Keep this on one line!
+  prompt: `You are an expert in writing {{letterType}}. Based on the user's background and the target job/university details, generate a personalized draft {{letterType}}.\n\nUser Background: {{{background}}}\nTarget Details: {{{targetDetails}}}\n\nDraft {{letterType}}:`,
 });
 
 const generateLetterDraftFlow = ai.defineFlow(

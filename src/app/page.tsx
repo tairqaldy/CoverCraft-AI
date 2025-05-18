@@ -89,7 +89,7 @@ export default function CoverCraftPage() {
         .catch((error) => {
           console.error("Error loading letter:", error);
           // Don't show error toast if it's just no draft found, only for actual errors
-          if (error.message !== "No draft found") {
+          if (error instanceof Error && error.message !== "No draft found") {
             toast({
               variant: "destructive",
               title: "Load Failed",
@@ -101,8 +101,7 @@ export default function CoverCraftPage() {
           setIsLoadingPersistence(false);
           hasLoadedFromFirestore.current = true;
         });
-    } else if (!user && skipLoginModeActive && !hasLoadedFromFirestore.current) {
-      // If in skip login mode and no real user, mark as loaded to prevent infinite loading
+    } else if (skipLoginModeActive && !hasLoadedFromFirestore.current) { // Handle initial load in skip mode
       setIsLoadingPersistence(false);
       hasLoadedFromFirestore.current = true;
     }
@@ -111,6 +110,7 @@ export default function CoverCraftPage() {
 
   // Effect for auto-saving when relevant state changes
   useEffect(() => {
+    // Only save if a user (real or mock) exists and initial load is complete
     if (user && hasLoadedFromFirestore.current) { 
       debouncedSave(user.uid, userInputData, currentLetterText);
     }
@@ -118,8 +118,8 @@ export default function CoverCraftPage() {
 
 
   const handleGenerateDraft = async (data: InformationFormValues) => {
-    if (!user) {
-       toast({ variant: "destructive", title: "Not Logged In", description: "Please log in to generate a draft." });
+    if (!user && !skipLoginModeActive) { // Ensure user context is available
+       toast({ variant: "destructive", title: "Not Logged In", description: "Please log in or use 'Skip Login' to generate a draft." });
        return;
     }
     setIsLoadingDraft(true);
@@ -137,7 +137,7 @@ export default function CoverCraftPage() {
       toast({
         variant: "destructive",
         title: "Error Generating Draft",
-        description: "Something went wrong. Please try again.",
+        description: error instanceof Error ? error.message : "Something went wrong. Please try again.",
       });
       setCurrentLetterText(''); 
     } finally {
@@ -146,8 +146,8 @@ export default function CoverCraftPage() {
   };
 
   const handleImproveContent = async () => {
-    if (!user) {
-      toast({ variant: "destructive", title: "Not Logged In", description: "Please log in to improve content." });
+    if (!user && !skipLoginModeActive) { // Ensure user context is available
+      toast({ variant: "destructive", title: "Not Logged In", description: "Please log in or use 'Skip Login' to improve content." });
       return;
     }
     if (!currentLetterText.trim() || !userInputData) {
@@ -177,7 +177,7 @@ export default function CoverCraftPage() {
       toast({
         variant: "destructive",
         title: "Error Improving Content",
-        description: "Something went wrong. Please try again.",
+        description: error instanceof Error ? error.message : "Something went wrong. Please try again.",
       });
     } finally {
       setIsLoadingImprovement(false);
@@ -244,7 +244,10 @@ export default function CoverCraftPage() {
               <>
                 <Separator />
                 <TemplateSelector />
-                <PdfExportButton letterContent={currentLetterText} fileName={`${userInputData?.letterType?.replace(" ","-") || "letter"}-draft.pdf`}/>
+                <PdfExportButton 
+                  letterContent={currentLetterText} 
+                  fileName={`${userInputData?.letterType?.replace(/\\s+/g, "-") || "letter"}-draft.pdf`}
+                />
               </>
             )}
           </div>
