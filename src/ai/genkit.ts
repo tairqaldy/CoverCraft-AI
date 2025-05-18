@@ -22,5 +22,5 @@ export const ai = genkit({
   plugins: [googleAI(apiKey ? { apiKey } : undefined)],
   // The default model for AI generation tasks.
   // We are using 'gemini-pro' as 'gemini-1.5-flash' and 'gemini-1.5-flash-latest' were not found.
-  model: 'gemini-1.5-flash',
+  model: 'googleai/gemini-1.5-flash',
 });
