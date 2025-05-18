@@ -36,7 +36,7 @@ function debounce<F extends (...args: any[]) => any>(func: F, waitFor: number) {
 
 
 export default function CoverCraftPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, skipLoginModeActive } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -74,7 +74,7 @@ export default function CoverCraftPage() {
 
   // Effect for redirecting and loading initial data
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (!authLoading && !user && !skipLoginModeActive) {
       router.push("/auth");
     } else if (user && !hasLoadedFromFirestore.current) {
       setIsLoadingPersistence(true);
@@ -88,36 +88,46 @@ export default function CoverCraftPage() {
         })
         .catch((error) => {
           console.error("Error loading letter:", error);
-          toast({
-            variant: "destructive",
-            title: "Load Failed",
-            description: "Could not load your saved letter.",
-          });
+          // Don't show error toast if it's just no draft found, only for actual errors
+          if (error.message !== "No draft found") {
+            toast({
+              variant: "destructive",
+              title: "Load Failed",
+              description: "Could not load your saved letter.",
+            });
+          }
         })
         .finally(() => {
           setIsLoadingPersistence(false);
           hasLoadedFromFirestore.current = true;
         });
+    } else if (!user && skipLoginModeActive && !hasLoadedFromFirestore.current) {
+      // If in skip login mode and no real user, mark as loaded to prevent infinite loading
+      setIsLoadingPersistence(false);
+      hasLoadedFromFirestore.current = true;
     }
-  }, [user, authLoading, router, toast]);
+  }, [user, authLoading, router, toast, skipLoginModeActive]);
 
 
   // Effect for auto-saving when relevant state changes
   useEffect(() => {
-    if (user && hasLoadedFromFirestore.current) { // Only save after initial load and if user is present
+    if (user && hasLoadedFromFirestore.current) { 
       debouncedSave(user.uid, userInputData, currentLetterText);
     }
   }, [userInputData, currentLetterText, user, debouncedSave]);
 
 
   const handleGenerateDraft = async (data: InformationFormValues) => {
-    if (!user) return;
+    if (!user) {
+       toast({ variant: "destructive", title: "Not Logged In", description: "Please log in to generate a draft." });
+       return;
+    }
     setIsLoadingDraft(true);
     setAiSuggestions([]); 
     setUserInputData(data); 
     try {
       const result: GenerateLetterDraftOutput = await generateLetterDraft(data);
-      setCurrentLetterText(result.draft); // This will trigger auto-save via useEffect
+      setCurrentLetterText(result.draft); 
       toast({
         title: "Draft Generated!",
         description: "Your letter draft has been successfully generated and saved.",
@@ -136,7 +146,11 @@ export default function CoverCraftPage() {
   };
 
   const handleImproveContent = async () => {
-    if (!user || !currentLetterText.trim() || !userInputData) {
+    if (!user) {
+      toast({ variant: "destructive", title: "Not Logged In", description: "Please log in to improve content." });
+      return;
+    }
+    if (!currentLetterText.trim() || !userInputData) {
       toast({
         variant: "destructive",
         title: "Cannot Improve",
@@ -152,7 +166,7 @@ export default function CoverCraftPage() {
         userBackground: userInputData.background,
       };
       const result: ImproveLetterContentOutput = await improveLetterContent(improvementInput);
-      setCurrentLetterText(result.improvedContent); // This will trigger auto-save
+      setCurrentLetterText(result.improvedContent); 
       setAiSuggestions(result.suggestions);
       toast({
         title: "Content Improved!",
@@ -171,16 +185,18 @@ export default function CoverCraftPage() {
   };
 
   const handleLetterContentChange = (content: string) => {
-    setCurrentLetterText(content); // This will trigger auto-save
+    setCurrentLetterText(content); 
     if (aiSuggestions.length > 0) {
         setAiSuggestions([]);
     }
   };
   
   const isLetterEmpty = !currentLetterText.trim();
-  const globalLoading = authLoading || isLoadingPersistence;
+  // Show loading screen if auth is loading AND we are not in skip login mode OR if persistence is loading and we haven't loaded from Firestore yet.
+  const showInitialLoadingScreen = (authLoading && !skipLoginModeActive) || (isLoadingPersistence && !hasLoadedFromFirestore.current);
 
-  if (globalLoading && !hasLoadedFromFirestore.current) {
+
+  if (showInitialLoadingScreen) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -189,7 +205,7 @@ export default function CoverCraftPage() {
     );
   }
   
-  if (!user) { // Should be caught by redirect, but as a fallback
+  if (!user && !skipLoginModeActive) { 
      return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <p className="text-lg text-muted-foreground">Redirecting to login...</p>
@@ -201,8 +217,8 @@ export default function CoverCraftPage() {
     <div className="flex min-h-screen flex-col">
       <Header />
       <main className="flex-1 container mx-auto p-4 py-8 md:p-8">
-        { (isLoadingDraft || isLoadingImprovement || isLoadingPersistence) && hasLoadedFromFirestore.current && (
-            <div className="fixed top-20 right-8 z-50_ flex items-center space-x-2 rounded-md bg-primary/10 p-2 text-sm text-primary backdrop-blur-sm">
+        { (isLoadingDraft || isLoadingImprovement || (isLoadingPersistence && hasLoadedFromFirestore.current)) && (
+            <div className="fixed top-20 right-8 z-50 flex items-center space-x-2 rounded-md bg-primary/10 p-2 text-sm text-primary backdrop-blur-sm">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 <span>Saving...</span>
             </div>
@@ -212,7 +228,7 @@ export default function CoverCraftPage() {
             <InformationInputForm 
               onSubmit={handleGenerateDraft} 
               isLoading={isLoadingDraft}
-              initialValues={userInputData || undefined} // Pass loaded data to form
+              initialValues={userInputData || undefined}
             />
           </div>
           <div className="space-y-8">
@@ -222,13 +238,13 @@ export default function CoverCraftPage() {
               onImproveContent={handleImproveContent}
               aiSuggestions={aiSuggestions}
               isLoading={isLoadingDraft || isLoadingImprovement} 
-              isInitiallyEmpty={!userInputData && !currentLetterText && hasLoadedFromFirestore.current} // Check after attempting to load
+              isInitiallyEmpty={!userInputData && !currentLetterText && hasLoadedFromFirestore.current && !isLoadingPersistence}
             />
             {!isLetterEmpty && (
               <>
                 <Separator />
                 <TemplateSelector />
-                <PdfExportButton isLetterEmpty={isLetterEmpty} />
+                <PdfExportButton letterContent={currentLetterText} fileName={`${userInputData?.letterType?.replace(" ","-") || "letter"}-draft.pdf`}/>
               </>
             )}
           </div>
@@ -242,4 +258,3 @@ export default function CoverCraftPage() {
     </div>
   );
 }
-
