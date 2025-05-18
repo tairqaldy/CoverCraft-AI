@@ -19,5 +19,5 @@ if (process.env.GOOGLE_API_KEY) {
 
 export const ai = genkit({
   plugins: [googleAI(googleAIParams)],
-  model: 'gemini-1.5-flash', // Updated to a common, current model for text generation
+  model: 'gemini-pro', // Updated to gemini-pro as a more broadly available model
 });

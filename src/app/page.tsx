@@ -60,8 +60,6 @@ export default function CoverCraftPage() {
       }
       if (!inputData && !letterText) {
         console.info("Debounced save: No input data or letter text to save, skipping.");
-        // Potentially, if you want to clear a draft, this condition might need adjustment
-        // For now, we assume saving empty state is not desired unless explicitly triggered
         return;
       }
 
@@ -69,7 +67,6 @@ export default function CoverCraftPage() {
       try {
         await saveUserLetter(uid, inputData, letterText);
         console.log("Letter saved successfully for user:", uid);
-        // Optional: Show a subtle saving indicator or toast
       } catch (error) {
         console.error("Error saving letter (debouncedSave):", error);
         let errorMessage = "Could not save your letter. Please try again.";
@@ -99,11 +96,15 @@ export default function CoverCraftPage() {
             setUserInputData(savedData.userInputData);
             setCurrentLetterText(savedData.currentLetterText);
             toast({ title: "Draft Loaded", description: "Your previously saved draft has been loaded."});
+          } else {
+            console.info("No saved draft found for user:", user.uid);
+            // This is not an error, just no data.
           }
         })
         .catch((error) => {
           console.error("Error loading letter (useEffect):", error);
-          if (error instanceof Error && error.message !== "No draft found") {
+          // Only show toast for unexpected errors, not for "No draft found" which is handled by getUserLetter returning null
+          if (error instanceof Error && error.message.toLowerCase() !== "no draft found") {
             toast({
               variant: "destructive",
               title: "Load Failed",
@@ -270,7 +271,7 @@ export default function CoverCraftPage() {
                 <TemplateSelector />
                 <PdfExportButton 
                   letterContent={currentLetterText} 
-                  fileName={`${userInputData?.letterType?.replace(/\\s+/g, "-") || "letter"}-draft.pdf`}
+                  fileName={`${userInputData?.letterType?.replace(/\s+/g, "-") || "letter"}-draft.pdf`}
                 />
               </>
             )}
@@ -285,4 +286,3 @@ export default function CoverCraftPage() {
     </div>
   );
 }
-
