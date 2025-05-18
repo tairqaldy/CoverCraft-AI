@@ -12,6 +12,13 @@
 **CoverCraft-AI** is an AI-powered web application that helps users craft the perfect **cover letters** or **motivation letters** for university admissions or job applications. With professional templates, AI guidance, and easy PDF export, it simplifies the process of writing compelling and personalized letters.
 
 ---
+Screenshots:
+![alt text](image.png)
+![alt text](image-1.png)
+![alt text](image-2.png)
+![alt text](image-3.png)
+![alt text](image-4.png)
+---
 
 ## 🔧 Features
 
