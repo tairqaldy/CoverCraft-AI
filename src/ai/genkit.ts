@@ -1,15 +1,13 @@
 
 import {genkit} from 'genkit';
-import {googleAI, GoogleAIPluginParams} from '@genkit-ai/googleai';
+import {googleAI} from '@genkit-ai/googleai'; // Removed GoogleAIPluginParams
 
 // Note: Next.js automatically loads variables from .env into process.env
 // For standalone Genkit scripts (like dev.ts), dotenv is usually configured there.
 
-const googleAIParams: GoogleAIPluginParams = {};
+const apiKey = process.env.GOOGLE_API_KEY;
 
-if (process.env.GOOGLE_API_KEY) {
-  googleAIParams.apiKey = process.env.GOOGLE_API_KEY;
-} else {
+if (!apiKey) {
   // This warning will appear in the server-side console (your terminal running `npm run dev`)
   // if the GOOGLE_API_KEY is not set.
   console.warn(
@@ -18,6 +16,9 @@ if (process.env.GOOGLE_API_KEY) {
 }
 
 export const ai = genkit({
-  plugins: [googleAI(googleAIParams)],
-  model: 'gemini-pro', // Updated to gemini-pro as a more broadly available model
+  // Pass the apiKey in an object if it exists.
+  // If apiKey is undefined, googleAI() might still attempt to use globally set environment variables.
+  plugins: [googleAI(apiKey ? { apiKey } : undefined)],
+  model: 'gemini-pro', // Using gemini-pro as previously decided
 });
+
