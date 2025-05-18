@@ -3,10 +3,21 @@
 
 import { AuthForm } from "@/components/auth/AuthForm";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { FileText, TestTube2 } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
 
 export default function AuthPage() {
+  const { activateSkipLogin } = useAuth();
+  const router = useRouter();
+
+  const handleSkipLogin = () => {
+    activateSkipLogin();
+    router.push("/");
+  };
+
   return (
     <div className="flex flex-col items-center space-y-6">
        <Link href="/" className="flex items-center text-foreground hover:text-primary transition-colors">
@@ -18,8 +29,12 @@ export default function AuthPage() {
           <CardTitle className="text-2xl">Welcome Back!</CardTitle>
           <CardDescription>Sign in or create an account to continue.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <AuthForm />
+          <Button variant="outline" className="w-full" onClick={handleSkipLogin}>
+            <TestTube2 className="mr-2 h-4 w-4" />
+            Skip Login for Testing
+          </Button>
         </CardContent>
       </Card>
        <p className="text-center text-sm text-muted-foreground">
@@ -28,4 +43,3 @@ export default function AuthPage() {
     </div>
   );
 }
-

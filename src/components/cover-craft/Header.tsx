@@ -1,7 +1,7 @@
 
 "use client";
 
-import { FileText, LogIn, LogOut, UserCircle, Loader2 } from 'lucide-react';
+import { FileText, LogIn, LogOut, UserCircle, Loader2, TestTube2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,17 +20,23 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 
 export function Header() {
-  const { user, loading } = useAuth();
+  const { user, loading, skipLoginModeActive, deactivateSkipLogin } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
   const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      toast({ title: 'Logged Out', description: 'You have been successfully logged out.' });
+    if (skipLoginModeActive) {
+      deactivateSkipLogin();
+      toast({ title: 'Exited Test Mode', description: 'You are now logged out of test mode.' });
       router.push('/auth');
-    } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Logout Failed', description: error.message });
+    } else {
+      try {
+        await signOut(auth);
+        toast({ title: 'Logged Out', description: 'You have been successfully logged out.' });
+        router.push('/auth');
+      } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Logout Failed', description: error.message });
+      }
     }
   };
 
@@ -52,8 +58,14 @@ export function Header() {
           <h1 className="text-2xl font-bold">CoverCraft AI</h1>
         </Link>
         
-        <div>
-          {loading ? (
+        <div className="flex items-center space-x-2">
+          {skipLoginModeActive && (
+            <div className="flex items-center space-x-1 rounded-md bg-yellow-100 px-2 py-1 text-xs text-yellow-700 dark:bg-yellow-700/30 dark:text-yellow-300">
+              <TestTube2 className="h-3 w-3" />
+              <span>Test Mode</span>
+            </div>
+          )}
+          {loading && !skipLoginModeActive ? (
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           ) : user ? (
             <DropdownMenu>
@@ -77,7 +89,7 @@ export function Header() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
                   <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
+                  <span>{skipLoginModeActive ? 'Exit Test Mode' : 'Log out'}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -94,4 +106,3 @@ export function Header() {
     </header>
   );
 }
-
