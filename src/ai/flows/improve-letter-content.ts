@@ -1,3 +1,4 @@
+
 // src/ai/flows/improve-letter-content.ts
 'use server';
 
@@ -102,7 +103,12 @@ const improveLetterContentFlow = ai.defineFlow(
     outputSchema: ImproveLetterContentOutputSchema,
   },
   async input => {
-    const {output} = await improveLetterContentPrompt(input);
-    return output!;
+    const result = await improveLetterContentPrompt(input);
+    if (!result.output) {
+      console.error('AI prompt for improveLetterContentFlow executed but no output was generated or it did not match the schema.');
+      throw new Error('AI failed to generate valid structured output for content improvement.');
+    }
+    return result.output;
   }
 );
+

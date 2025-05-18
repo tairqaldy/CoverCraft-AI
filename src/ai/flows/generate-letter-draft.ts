@@ -49,7 +49,12 @@ const generateLetterDraftFlow = ai.defineFlow(
     outputSchema: GenerateLetterDraftOutputSchema,
   },
   async input => {
-    const {output} = await generateLetterDraftPrompt(input);
-    return output!;
+    const result = await generateLetterDraftPrompt(input);
+    if (!result.output) {
+      console.error('AI prompt for generateLetterDraftFlow executed but no output was generated or it did not match the schema.');
+      throw new Error('AI failed to generate valid structured output for the letter draft.');
+    }
+    return result.output;
   }
 );
+
