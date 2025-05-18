@@ -54,22 +54,37 @@ export default function CoverCraftPage() {
   // Debounced save function
   const debouncedSave = useCallback(
     debounce(async (uid: string, inputData: GenerateLetterDraftInput | null, letterText: string) => {
-      if (!uid) return;
+      if (!uid) {
+        console.warn("Debounced save: No UID available, skipping save.");
+        return;
+      }
+      if (!inputData && !letterText) {
+        console.info("Debounced save: No input data or letter text to save, skipping.");
+        // Potentially, if you want to clear a draft, this condition might need adjustment
+        // For now, we assume saving empty state is not desired unless explicitly triggered
+        return;
+      }
+
       setIsLoadingPersistence(true);
       try {
         await saveUserLetter(uid, inputData, letterText);
+        console.log("Letter saved successfully for user:", uid);
         // Optional: Show a subtle saving indicator or toast
       } catch (error) {
-        console.error("Error saving letter:", error);
+        console.error("Error saving letter (debouncedSave):", error);
+        let errorMessage = "Could not save your letter. Please try again.";
+        if (error instanceof Error) {
+            errorMessage = `Could not save your letter: ${error.message}`;
+        }
         toast({
           variant: "destructive",
           title: "Save Failed",
-          description: "Could not save your letter. Please try again.",
+          description: errorMessage,
         });
       } finally {
         setIsLoadingPersistence(false);
       }
-    }, 1500), // 1.5 seconds debounce
+    }, 1500), 
   [toast]);
 
   // Effect for redirecting and loading initial data
@@ -87,13 +102,12 @@ export default function CoverCraftPage() {
           }
         })
         .catch((error) => {
-          console.error("Error loading letter:", error);
-          // Don't show error toast if it's just no draft found, only for actual errors
+          console.error("Error loading letter (useEffect):", error);
           if (error instanceof Error && error.message !== "No draft found") {
             toast({
               variant: "destructive",
               title: "Load Failed",
-              description: "Could not load your saved letter.",
+              description: `Could not load your saved letter: ${error.message}`,
             });
           }
         })
@@ -101,7 +115,7 @@ export default function CoverCraftPage() {
           setIsLoadingPersistence(false);
           hasLoadedFromFirestore.current = true;
         });
-    } else if (skipLoginModeActive && !hasLoadedFromFirestore.current) { // Handle initial load in skip mode
+    } else if (skipLoginModeActive && !hasLoadedFromFirestore.current) { 
       setIsLoadingPersistence(false);
       hasLoadedFromFirestore.current = true;
     }
@@ -110,7 +124,6 @@ export default function CoverCraftPage() {
 
   // Effect for auto-saving when relevant state changes
   useEffect(() => {
-    // Only save if a user (real or mock) exists and initial load is complete
     if (user && hasLoadedFromFirestore.current) { 
       debouncedSave(user.uid, userInputData, currentLetterText);
     }
@@ -118,7 +131,7 @@ export default function CoverCraftPage() {
 
 
   const handleGenerateDraft = async (data: InformationFormValues) => {
-    if (!user && !skipLoginModeActive) { // Ensure user context is available
+    if (!user && !skipLoginModeActive) { 
        toast({ variant: "destructive", title: "Not Logged In", description: "Please log in or use 'Skip Login' to generate a draft." });
        return;
     }
@@ -126,18 +139,24 @@ export default function CoverCraftPage() {
     setAiSuggestions([]); 
     setUserInputData(data); 
     try {
+      console.log("Attempting to generate draft with input:", data);
       const result: GenerateLetterDraftOutput = await generateLetterDraft(data);
       setCurrentLetterText(result.draft); 
+      console.log("Draft generated successfully:", result);
       toast({
         title: "Draft Generated!",
         description: "Your letter draft has been successfully generated and saved.",
       });
     } catch (error) {
-      console.error("Error generating draft:", error);
+      console.error("Error generating draft (handleGenerateDraft):", error);
+      let errorMessage = "Something went wrong. Please try again.";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
       toast({
         variant: "destructive",
         title: "Error Generating Draft",
-        description: error instanceof Error ? error.message : "Something went wrong. Please try again.",
+        description: errorMessage,
       });
       setCurrentLetterText(''); 
     } finally {
@@ -146,7 +165,7 @@ export default function CoverCraftPage() {
   };
 
   const handleImproveContent = async () => {
-    if (!user && !skipLoginModeActive) { // Ensure user context is available
+    if (!user && !skipLoginModeActive) { 
       toast({ variant: "destructive", title: "Not Logged In", description: "Please log in or use 'Skip Login' to improve content." });
       return;
     }
@@ -165,19 +184,25 @@ export default function CoverCraftPage() {
         targetJobOrUniversity: userInputData.targetDetails,
         userBackground: userInputData.background,
       };
+      console.log("Attempting to improve content with input:", improvementInput);
       const result: ImproveLetterContentOutput = await improveLetterContent(improvementInput);
       setCurrentLetterText(result.improvedContent); 
       setAiSuggestions(result.suggestions);
+      console.log("Content improved successfully:", result);
       toast({
         title: "Content Improved!",
         description: "AI has refined your letter, and changes are saved.",
       });
     } catch (error) {
-      console.error("Error improving content:", error);
+      console.error("Error improving content (handleImproveContent):", error);
+      let errorMessage = "Something went wrong. Please try again.";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
       toast({
         variant: "destructive",
         title: "Error Improving Content",
-        description: error instanceof Error ? error.message : "Something went wrong. Please try again.",
+        description: errorMessage,
       });
     } finally {
       setIsLoadingImprovement(false);
@@ -192,7 +217,6 @@ export default function CoverCraftPage() {
   };
   
   const isLetterEmpty = !currentLetterText.trim();
-  // Show loading screen if auth is loading AND we are not in skip login mode OR if persistence is loading and we haven't loaded from Firestore yet.
   const showInitialLoadingScreen = (authLoading && !skipLoginModeActive) || (isLoadingPersistence && !hasLoadedFromFirestore.current);
 
 
@@ -261,3 +285,4 @@ export default function CoverCraftPage() {
     </div>
   );
 }
+
